@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R50 Hub — Safer Marketplace</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#182033}
+nav{background:#182033;color:#fff;padding:14px 5%;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}.logo{font-weight:800;font-size:21px}
+button{border:0;border-radius:10px;padding:11px 15px;background:#182033;color:#fff;font-weight:700;cursor:pointer}.green{background:#159b59}.light{background:#eef1f6;color:#182033}.danger{background:#fff0f0;color:#922}
+.hero{padding:48px 7%;background:linear-gradient(135deg,#182033,#2b3d5d);color:white}.hero h1{font-size:39px;max-width:760px;margin:0 0 12px}.hero p{max-width:690px;line-height:1.6;color:#dce5f2}
+main{max-width:1100px;margin:28px auto;padding:0 18px}.card{background:#fff;border:1px solid #e5e8ef;border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 7px 22px #0000000b}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:16px}.badge{display:inline-block;background:#eaf8f0;color:#137541;border-radius:20px;padding:6px 9px;font-size:12px;font-weight:700}.price{font-size:24px;font-weight:800;margin:10px 0}.muted{color:#6b7586;line-height:1.5}
+form{display:grid;gap:12px}input,textarea,select{width:100%;padding:12px;border:1px solid #d7dce5;border-radius:10px;font:inherit}textarea{min-height:95px}
+.hidden{display:none}.task{border-bottom:1px solid #e9ebf0;padding:17px 0}.tasktop{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}
+.notice,.success,.error{padding:13px;border-radius:10px;line-height:1.5}.notice{background:#fff7dc;border-left:4px solid #d59c00}.success{background:#eaf8f0;color:#126b3c}.error{background:#fff0f0;color:#9b2020}
+.status{font-size:12px;padding:5px 8px;border-radius:15px;background:#eef1f6;display:inline-block}.verified{background:#eaf8f0;color:#137541}
+.empty{text-align:center;padding:25px;color:#6b7586}footer{text-align:center;padding:30px;color:#70798a;font-size:13px}
+@media(max-width:650px){.hero h1{font-size:31px}nav{align-items:flex-start;gap:6px}.hero{padding:38px 6%}}
+</style>
+</head>
+<body>
+<nav>
+<div class="logo">💰 R50 Hub</div>
+<div>
+<button onclick="show('tasks')">Tasks</button>
+<button onclick="show('post')">Post Task</button>
+<button onclick="show('dashboard')">Dashboard</button><button onclick="show('payments')">Payments</button>
+<span id="auth"><button class="green" onclick="show('login')">Sign in</button></span>
+</div>
+</nav>
+
+<section class="hero">
+<h1>Small jobs. Real customers. Safer marketplace.</h1>
+<p>Post legitimate small jobs or apply for tasks you can actually complete. The marketplace uses your online Supabase database.</p>
+<button class="green" onclick="show('tasks')">Browse tasks →</button>
+</section>
+
+<main>
+<section id="home">
+<div class="grid">
+<div class="card"><h3>🛡️ Moderation</h3><p class="muted">Listings can be reported and are designed to support review before being promoted.</p></div>
+<div class="card"><h3>✅ Verification</h3><p class="muted">Users can request verification. Verification is manually reviewed rather than pretending an identity is verified.</p></div>
+<div class="card"><h3>💳 Safer payments</h3><p class="muted">The site records payment status, but does not process money itself. Use an adult/guardian-supported payment method where required.</p></div>
+</div>
+<div class="card"><h2>Important</h2><p class="muted">A database can connect real customers to you, but it cannot guarantee customers. You still need to publish and promote the site.</p></div>
+</section>
+
+<section id="login" class="hidden">
+<div class="card" style="max-width:470px;margin:auto"><h2 id="loginTitle">Create account</h2><div id="loginMsg"></div>
+<form id="loginForm"><input id="email" type="email" placeholder="Email" required><input id="password" type="password" minlength="8" placeholder="Password (8+ characters)" required>
+<input id="name" placeholder="Display name" required><select id="role"><option value="worker">I complete tasks</option><option value="customer">I need tasks done</option><option value="both">Both</option></select>
+<button class="green">Create account</button></form><button class="light" onclick="toggleLogin()">Switch to sign in</button></div>
+</section>
+
+<section id="tasks" class="hidden"><div class="card"><h2>Live customer tasks</h2><p class="muted">Only approved, open listings are shown.</p><button class="light" onclick="loadTasks()">↻ Refresh tasks</button><div id="taskList"><div class="empty">Loading...</div></div></div></section>
+
+<section id="post" class="hidden"><div class="card"><h2>Post a task</h2><div id="postMsg"></div>
+<form id="postForm"><input id="title" placeholder="What needs to be done?" required><select id="category"><option>Design</option><option>Writing</option><option>School-safe help</option><option>Tech help</option><option>Other</option></select>
+<input id="budget" type="number" min="1" placeholder="Budget in rand" required><textarea id="desc" placeholder="Describe the task without private information." required></textarea>
+<button class="green">Submit for moderation</button></form></div></section>
+
+<section id="payments" class="hidden">
+<div class="card">
+<h2>💳 Payment instructions</h2>
+<div class="notice"><b>Protect your banking information.</b> Never publish your account number, card number, PIN, password, OTP, or banking login on this website.</div>
+<h3>How payment should work</h3>
+<ol class="muted">
+<li>Customer and worker agree on the job and price.</li>
+<li>Customer pays using an approved payment method.</li>
+<li>Only share payment details privately and only when appropriate.</li>
+<li>Confirm that the payment has actually arrived before treating a job as paid.</li>
+</ol>
+<h3>Your payment setup</h3>
+<p class="muted">R50 Hub does not store or display your bank details. If you use a GoTyme account, confirm with GoTyme that your particular account can receive payments for the work you offer. If a business account or adult/guardian involvement is required, follow GoTyme's rules.</p>
+<div class="notice"><b>Scam warning:</b> Never send money back because a customer shows a screenshot claiming they overpaid. Check your actual account balance/transaction history, and never share an OTP to “release” a payment.</div>
+</div>
+</section>
+
+<section id="dashboard" class="hidden"><div class="card"><h2>Dashboard</h2><div id="dash"></div></div></section>
+
+<div class="card">
+<h3>Safety checklist</h3>
+<p class="muted">Never share passwords, OTPs, banking PINs, home addresses or identity documents. Never pay to unlock a job. Don't accept unsafe, illegal or age-restricted work. If a payment platform requires an adult account, use a parent/guardian.</p>
+</div>
+</main>
+<footer>R50 Hub • Safer marketplace prototype</footer>
+
+<script>
+const URL="https://tlnbjqjekdnoeonxjngz.supabase.co";
+const KEY="sb_publishable_cnYdv5psp9XEGyqxU6vvbg_nxjEk0Ba";
+const db=supabase.createClient(URL,KEY);
+let signIn=false;
+
+const esc=s=>String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+function show(id){
+      ["home","login","tasks","post","dashboard","payments"].forEach(x=>document.getElementById(x).classList.add("hidden"));
+      const target=document.getElementById(id);
+      if(!target){document.getElementById("home").classList.remove("hidden");return}
+      target.classList.remove("hidden");
+      if(id==="tasks")loadTasks();
+      if(id==="dashboard")loadDash();
+      if(id==="post")checkPost();
+      window.scrollTo(0,0);
+    }
+function notice(id,t,c="success"){document.getElementById(id).innerHTML=`<div class="${c}">${esc(t)}</div>`}
+async function me(){return (await db.auth.getUser()).data.user}
+async function refreshAuth(){const u=await me();document.getElementById("auth").innerHTML=u?'<button class="light" onclick="logout()">Sign out</button>':'<button class="green" onclick="show(\\'login\\')">Sign in</button>'}
+async function loadTasks(){
+ const box=document.getElementById("taskList");
+ const {data,error}=await db.from("tasks").select("id,title,description,category,budget,created_at").eq("status","open").eq("moderation_status","approved").order("created_at",{ascending:false});
+ if(error){box.innerHTML=`<div class="error">${esc(error.message)}</div>`;return}
+ if(!data?.length){box.innerHTML='<div class="empty">No approved customer tasks yet.</div>';return}
+ box.innerHTML=data.map(t=>`<div class="task"><div class="tasktop"><div><span class="badge">${esc(t.category)}</span><h3>${esc(t.title)}</h3><p class="muted">${esc(t.description)}</p></div><div class="price">R${t.budget}</div></div><button class="green" onclick="apply('${t.id}')">Apply</button><button class="danger" onclick="report('${t.id}')">Report</button></div>`).join("")
+}
+async function apply(id){
+ const u=await me();if(!u){show("login");notice("loginMsg","Sign in before applying.","error");return}
+ const message=prompt("Short application. Don't include private information.");if(!message)return;
+ const {error}=await db.from("applications").insert({task_id:id,worker_id:u.id,message});
+ alert(error?error.message:"Application sent.");
+}
+async function report(id){
+ const u=await me();if(!u){show("login");return}
+ const reason=prompt("Reason for report:");if(!reason)return;
+ const {error}=await db.from("task_reports").insert({task_id:id,reporter_id:u.id,reason});
+ alert(error?"Could not submit report.":"Report submitted for review.");
+}
+async function checkPost(){const u=await me();document.getElementById("postForm").style.display=u?"grid":"none";if(!u)notice("postMsg","Sign in to post a task.","error")}
+document.getElementById("postForm").addEventListener("submit",async e=>{
+ e.preventDefault();const u=await me();if(!u)return;
+ const {error}=await db.from("tasks").insert({customer_id:u.id,title:title.value,description:desc.value,category:category.value,budget:Number(budget.value),moderation_status:"pending"});
+ if(error){notice("postMsg",error.message,"error");return}e.target.reset();notice("postMsg","Submitted. A moderator needs to approve it before it appears publicly.")
+});
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();const em=email.value.trim(),pw=password.value;
+ if(signIn){const {error}=await db.auth.signInWithPassword({email:em,password:pw});if(error){notice("loginMsg",error.message,"error");return}await refreshAuth();show("dashboard");return}
+ const {data,error}=await db.auth.signUp({email:em,password:pw,options:{data:{display_name:name.value.trim(),role:role.value}}});
+ if(error){notice("loginMsg",error.message,"error");return}
+ if(data.user)await db.from("profiles").upsert({id:data.user.id,display_name:name.value.trim(),role:role.value});
+ notice("loginMsg","Account created. Email confirmation may be required before signing in.")
+});
+function toggleLogin(){signIn=!signIn;document.getElementById("loginTitle").textContent=signIn?"Sign in":"Create account";document.getElementById("name").style.display=signIn?"none":"block";document.getElementById("role").style.display=signIn?"none":"block";document.querySelector("#loginForm button").textContent=signIn?"Sign in":"Create account"}
+async function logout(){await db.auth.signOut();await refreshAuth();show("home")}
+async function requestVerification(){
+ const u=await me();if(!u){show("login");return}
+ const note=prompt("Optional note for the moderator. Do not send ID numbers or sensitive documents here.");const {error}=await db.from("verification_requests").insert({user_id:u.id,note:note||null});
+ alert(error?error.message:"Verification request submitted.");
+}
+async function loadDash(){
+ const box=document.getElementById("dash");
+ box.innerHTML='<div class="empty">Loading dashboard...</div>';
+ const u=await me();
+ if(!u){box.innerHTML='<p class="muted">Please sign in first.</p><button class="green" onclick="show(\'login\')">Sign in</button>';return}
+ const [pr,tr,ar]=await Promise.all([
+   db.from("profiles").select("display_name,role,verification_status").eq("id",u.id).maybeSingle(),
+   db.from("tasks").select("id,title,budget,status,moderation_status,payment_status").eq("customer_id",u.id).order("created_at",{ascending:false}),
+   db.from("applications").select("message,status,task_id,completed_at").eq("worker_id",u.id).order("created_at",{ascending:false})
+ ]);
+ if(pr.error||tr.error||ar.error){
+   box.innerHTML='<div class="error">Could not load your dashboard. Please refresh and try again.</div>';
+   return;
+ }
+ const p=pr.data,t=tr.data||[],a=ar.data||[];
+ box.innerHTML=`<h3>Welcome, ${esc(p?.display_name||"User")} 👋</h3>
+ <p class="muted">Role: ${esc(p?.role||"worker")} • Verification: <span class="status ${p?.verification_status==="verified"?"verified":""}">${esc(p?.verification_status||"unverified")}</span></p>
+ <button class="light" onclick="requestVerification()">Request verification</button>
+ <h3>Your posted tasks</h3>${t.length?t.map(x=>`<div class="task"><b>${esc(x.title)}</b><div class="muted">R${x.budget} • moderation: ${esc(x.moderation_status||"pending")} • payment: ${esc(x.payment_status||"unpaid")}</div></div>`).join(""):'<p class="muted">None yet.</p>'}
+ <h3>Your applications</h3>${a.length?a.map(x=>`<div class="task"><b>${esc(x.status)}</b><p class="muted">${esc(x.message)}</p></div>`).join(""):'<p class="muted">None yet.</p>'}`;
+}
+db.auth.onAuthStateChange(()=>refreshAuth());refreshAuth();show("home");
+</script>
+</body></html>
